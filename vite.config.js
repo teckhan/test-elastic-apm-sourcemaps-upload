@@ -31,7 +31,7 @@ const uploadSourcemapsPlugin = (kibanaServerUrl, apmApiKey) => ({
       return formData
     }
 
-    const upload = async (queueIndex, callback) => {
+    const upload = async (queueIndex, isRecursive) => {
       if (queueIndex > sourcemapPaths.length - 1) return
 
       const isSuccess = await axios.post(
@@ -58,17 +58,14 @@ const uploadSourcemapsPlugin = (kibanaServerUrl, apmApiKey) => ({
         )
       }
 
-      await callback?.()
+      if (isRecursive)
+        await upload(queueIndex + 1, isRecursive)
     }
     
     if (uploadMode === 'parallel') {
       await Promise.all(sourcemapPaths.map((_, index) => upload(index)))
     } else {
-      let currentQueueIndex = 0
-      await upload(currentQueueIndex, () => {
-        currentQueueIndex++
-        return upload(currentQueueIndex)
-      })
+      await upload(0, true)
     }
   }
 })
